@@ -148,7 +148,10 @@ exports.getUserById = catchAsync(async(req, res, next) => {
   // Get user from params
   const id = req.params.id;
   // Check if the user exists
-  const user = await User.findById(id);
+  const user = await User.findById(id).populate({
+    path: 'posts',
+    select: '-user'
+  });
     if (!user) {
       return next(new AppError("No user found with that ID.", 404));
     }
