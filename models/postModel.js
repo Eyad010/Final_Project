@@ -21,17 +21,10 @@ const postSchema = new mongoose.Schema({
     required: [true, "location must be provided"],
   },
   category: {
-    type: String,
-    enum: [
-      "Books",
-      "Decor & Furniture",
-      "Shoes",
-      "Electronic Devices",
-      "Mobiles",
-      "Clothes",
-    ],
-    required: true,
-  },
+      type: String,
+      enum: ['أخري', 'أدوات مدرسيه', 'ألعاب', 'كتب', 'ديكور وأثاث', 'أحذية', 'أجهزة إلكترونية', 'هواتف محمولة', 'ملابس'],
+      required: true
+  }
 
 });
 
