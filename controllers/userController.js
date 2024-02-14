@@ -15,64 +15,58 @@ const duri = new DataURIParser();
 
 
 // a file is uploaded, Multer will store the file data in memory rather than storing it on disk
-const multerStorage = multer.memoryStorage();
+// Multer storage configuration
+const multerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/img/users'); // Specify the destination folder
+  },
+  filename: (req, file, cb) => {
+    const ext = file.mimetype.split('/')[1];
+    // Constructing the filename with user id and current timestamp
+    const filename = `user-${req.user.id}-${Date.now()}.${ext}`;
+    cb(null, filename);
+  }
+});
 
-// filter to test if the uploaded file is an image
+// Filter to test if the uploaded file is an image
 const multerFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image")) {
+  if (file.mimetype.startsWith('image')) {
     cb(null, true);
   } else {
-    cb(new AppError("Not an image! Please upload images only.", 400));
+    cb(new AppError('Not an image! Please upload images only.', 400));
   }
 };
 
-// midlleware for upload photo
+// Middleware for uploading user photo
 const upload = multer({
   storage: multerStorage,
-  fileFilter: multerFilter,
-});
-exports.uploadUserPhoto = upload.single("photo");
+  fileFilter: multerFilter
+}).single('photo'); // 'photo' is the field name in the form
 
-exports.UserProfilePhoto = catchAsync(async (req, res, next) => {
-  // 1) validation
-  if (!req.file) return next(
-    new AppError('No photo provided', 400)
-  );
-
-  // 2) get the path to the image
-  // const imageName = `user-${req.user.id}-${Date.now()}.jpeg`;
-  // console.log(req.file)
-  // const imagePath = path.join(__dirname, `../public/img/users/${imageName}`);
-  
-  const newImagePath = duri.format(path.extname(req.file.originalname).toString(), req.file.buffer)
-
-  // console.log(newImagePath.content);
-
-  // 3) upload to  cloudinary 
-   const result = await cloudinaryUploadImage(newImagePath.content);
-  //  console.log({result});
-
-
-  //      // Update the user document in the database with the secure_url
-       const user = await User.findById(req.user.id);
-    
-       // 5) delete the old photo if exist
-       if (user.photo && user.photo !== ''){
-        await cloudinaryRemoveImage(user.photo);
-       }
-
-        // 6) change the photo field in the DB
-       user.photo = result.secure_url;
-       user.markModified('photo'); // Mark the photo field as modified
-       user.passwordConfirm = user.password; // Set passwordConfirm to match the password
-       await user.save({ validateBeforeSave: false });
-       
-  res.status(200).json({
-    success: true,
-    message: "your photo updated successfully",
-    data: {
-      user
+// Middleware for resizing user photo
+exports.uploadUserPhoto = catchAsync((req, res, next) => {
+  upload(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return next(new AppError('Multer error: ' + err.message, 400));
+    } else if (err) {
+      return next(err);
     }
+
+    // Check if no file was uploaded
+    if (!req.file) return next();
+
+    
+      // Resize the image using sharp
+      await sharp(req.file.path)
+        .resize(500, 500)
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(path.join('public/img/users', req.file.filename));
+
+      // Delete the original file from the temporary directory
+      // await promisify(fs.unlink)(req.file.path);
+
+      next();
   });
 });
 

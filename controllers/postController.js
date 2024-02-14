@@ -102,29 +102,42 @@ exports.getPost = catchAsync(async (req, res, next) => {
   });
 });
 
-const multerStorage = multer.memoryStorage();
+// Multer storage configuration
+const multerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/img/post');
+  },
+  filename: (req, file, cb) => {
+    const ext = file.mimetype.split('/')[1];
+    const postId = req.params.id;
+    const timestamp = Date.now();
+    const index = req.files.images.indexOf(file) + 1; // Get the index of the current file
+    const filename = `post-${postId}-${timestamp}-${index}.${ext}`;
+    cb(null, filename);
+  }
+});
 
-// filter to test if the uploaded file is an image
+
+// Multer filter to test if the uploaded file is an image
 const multerFilter = (req, file, cb) => {
-  if(file.mimetype.startsWith('image')){
+  if (file.mimetype.startsWith('image')) {
     cb(null, true);
-  }else{
-    cb(new AppError("Not an image! Please upload images only.", 400));
+  } else {
+    cb(new AppError('Not an image! Please upload images only.', 400));
   }
 };
 
-// midlleware for upload photo 
+// Multer middleware for uploading photos
 const upload = multer({
   storage: multerStorage,
   fileFilter: multerFilter
 });
 
 exports.uploadPostImages = upload.fields([
-  { name:'images',maxCount: 3}
- 
- ]);
+  { name: 'images', maxCount: 3 }
+]);
 
- exports.resizePostImages = catchAsync(async (req, res, next) => {
+exports.resizePostImages = catchAsync(async (req, res, next) => {
   if (!req.files.images) return next(new AppError('No files found with given name', 400));
 
   // 1) Images
@@ -132,16 +145,21 @@ exports.uploadPostImages = upload.fields([
 
   await Promise.all(
     req.files.images.map(async (file, i) => {
-      // Upload image to Cloudinary
-      const newImagePath = duri.format(path.extname(file.originalname).toString(), file.buffer);
-      const result = await cloudinaryUploadImage(newImagePath.content);
-      req.body.images.push(result.secure_url);
+      const ext = file.mimetype.split('/')[1];
+      const filename = `post-${req.params.id}-${Date.now()}-${i + 1}.${ext}`;
+
+      await sharp(file.path)
+        .resize(2000, 1333)
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(`public/img/post/${filename}`);
+
+      req.body.images.push(filename);
     })
   );
 
   next();
 });
-
 
 
 exports.createPost = catchAsync(async (req, res, next) => {
@@ -206,3 +224,7 @@ exports.deletePost = catchAsync(async (req, res, next) => {
       post: null,
     });
 });
+
+
+
+
