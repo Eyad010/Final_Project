@@ -26,9 +26,13 @@ router.delete("/deleteMe", userController.deleteMe);
 router.get("/me", userController.getMe, userController.getOne);
 router.patch(
   "/updateMe",
-  userController.uploadUserPhoto,
-  userController.resizeUserPhoto,
   userController.updateMe
+);
+
+router.patch(
+  "/updateMyPhoto",
+  userController.uploadUserPhoto,
+  userController.UserProfilePhoto
 );
 
 module.exports = router;

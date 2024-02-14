@@ -33,7 +33,7 @@ const upload = multer({
 });
 exports.uploadUserPhoto = upload.single("photo");
 
-exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
+exports.UserProfilePhoto = catchAsync(async (req, res, next) => {
   // 1) validation
   if (!req.file) return next(
     new AppError('No photo provided', 400)
@@ -48,43 +48,34 @@ exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
 
   // console.log(newImagePath.content);
 
-  // return;
-  // console.log(imagePath)
   // 3) upload to  cloudinary 
    const result = await cloudinaryUploadImage(newImagePath.content);
-   console.log({result});
+  //  console.log({result});
 
-   /******************************* */
-  //  const secureUrl = result.secure_url;
+
   //      // Update the user document in the database with the secure_url
-  //      const user = await User.findById(req.user.id);
-  //      user.photo = secureUrl;
-  //      await user.save();
-   /*** SAVE IMAGE TO DATABASE ***/
+       const user = await User.findById(req.user.id);
+    
+       // 5) delete the old photo if exist
+       if (user.photo && user.photo !== ''){
+        await cloudinaryRemoveImage(user.photo);
+       }
 
-   // 4) get the user from DB 
-  //  const user = await User.findById(req.user.id); 
-   // 5) delete the old photo if exist
-   // 6) change the photo field in the DB
-   // 7) send the respones  with status OK and the modified user
-   // 8) remove image from the server
-
-next();
-
-//  store photo locally
-
-  // req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
-
-  // // Resize the image using sharp
-  // await sharp(req.file.buffer)
-  //   .resize(500, 500)
-  //   .toFormat("jpeg")
-  //   .jpeg({ quality: 90 })
-  //   .toFile(`public/img/users/${req.file.filename}`);
-
-  // // Continue to the next middleware after the resizing is complete
-  // next();
+        // 6) change the photo field in the DB
+       user.photo = result.secure_url;
+       user.markModified('photo'); // Mark the photo field as modified
+       user.passwordConfirm = user.password; // Set passwordConfirm to match the password
+       await user.save({ validateBeforeSave: false });
+       
+  res.status(200).json({
+    success: true,
+    message: "your photo updated successfully",
+    data: {
+      user
+    }
+  });
 });
+
 
 
 //filter out unwanted fields from the input object and return a new object containing only the allowed fields.
@@ -97,7 +88,7 @@ const filterObj = (obj, ...allowedFields) => {
 };
 
 exports.updateMe = catchAsync(async (req, res, next) => {
-  //1) Create error if user POSTs password data
+  // 1) Create error if user POSTs password data
   if (req.body.password || req.body.passwordConfirm) {
     return next(
       new AppError(
@@ -109,19 +100,25 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
   if(req.body.email){
     return next(
-      new AppError("Email can not be changed.", 400)
+      new AppError("Email cannot be changed.", 400)
     );
   }
 
+  // if(req.file) {
+  //   return next(
+  //     new AppError('You cannot update your profile photo from this route. Please use /updateMyProfilePhoto.', 400)
+  //   );
+  // }
+
   // 2) Filtered out unwanted fields names that are allowed to be updated
-  const filteredBody = filterObj(req.body, "name", "photo", "phone");
-  // update photo and save it to database
-  if (req.file) filteredBody.photo = req.file.filename;
+  const filteredBody = filterObj(req.body, "name", "phone");
+
   // 3) Update user document
   const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
     new: true,
     runValidators: true,
   });
+  console.log("Updated User:", updatedUser);
 
   res.status(200).json({
     status: "success",
@@ -130,6 +127,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     },
   });
 });
+
 
 
 // retrieve the ID of the authenticated user from the req.user object and assign it to req.params.id
