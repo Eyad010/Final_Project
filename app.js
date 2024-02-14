@@ -10,6 +10,7 @@ const postRouter = require('./routes/postRoutes');
 const globalErrorHandler = require('./controllers/errorController');
 
 
+
 const app = express();
 
 // 1) global middlewares......

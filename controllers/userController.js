@@ -5,6 +5,13 @@ const AppError = require("../utils/appError");
 const multer = require("multer");
 const sharp = require("sharp");
 const sendEmail = require("../utils/email");
+const path = require('path');
+const fs = require('fs');
+const {    cloudinaryUploadImage,
+  cloudinaryRemoveImage } = require('../utils/cloudinary');
+
+const DataURIParser = require('datauri/parser');
+const duri = new DataURIParser();
 
 
 // a file is uploaded, Multer will store the file data in memory rather than storing it on disk
@@ -27,19 +34,56 @@ const upload = multer({
 exports.uploadUserPhoto = upload.single("photo");
 
 exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
-  if (!req.file) return next();
+  // 1) validation
+  if (!req.file) return next(
+    new AppError('No photo provided', 400)
+  );
 
-  req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
+  // 2) get the path to the image
+  // const imageName = `user-${req.user.id}-${Date.now()}.jpeg`;
+  // console.log(req.file)
+  // const imagePath = path.join(__dirname, `../public/img/users/${imageName}`);
+  
+  const newImagePath = duri.format(path.extname(req.file.originalname).toString(), req.file.buffer)
 
-  // Resize the image using sharp
-  await sharp(req.file.buffer)
-    .resize(500, 500)
-    .toFormat("jpeg")
-    .jpeg({ quality: 90 })
-    .toFile(`public/img/users/${req.file.filename}`);
+  // console.log(newImagePath.content);
 
-  // Continue to the next middleware after the resizing is complete
-  next();
+  // return;
+  // console.log(imagePath)
+  // 3) upload to  cloudinary 
+   const result = await cloudinaryUploadImage(newImagePath.content);
+   console.log({result});
+
+   /******************************* */
+  //  const secureUrl = result.secure_url;
+  //      // Update the user document in the database with the secure_url
+  //      const user = await User.findById(req.user.id);
+  //      user.photo = secureUrl;
+  //      await user.save();
+   /*** SAVE IMAGE TO DATABASE ***/
+
+   // 4) get the user from DB 
+  //  const user = await User.findById(req.user.id); 
+   // 5) delete the old photo if exist
+   // 6) change the photo field in the DB
+   // 7) send the respones  with status OK and the modified user
+   // 8) remove image from the server
+
+next();
+
+//  store photo locally
+
+  // req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
+
+  // // Resize the image using sharp
+  // await sharp(req.file.buffer)
+  //   .resize(500, 500)
+  //   .toFormat("jpeg")
+  //   .jpeg({ quality: 90 })
+  //   .toFile(`public/img/users/${req.file.filename}`);
+
+  // // Continue to the next middleware after the resizing is complete
+  // next();
 });
 
 

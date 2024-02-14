@@ -139,7 +139,6 @@ exports.uploadPostImages = upload.fields([
       req.body.images.push(filename);
     })
   );
-  
     next();
    });
 

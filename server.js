@@ -11,9 +11,18 @@ const app = require('./app');
 
 dotenv.config({ path: './config.env' });
 
+const cloudinary = require('cloudinary');
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+
 
 const DB = process.env.DATABASE.replace('<PASSWORD>', 
 process.env.DATABASE_PASSWORD);
+
 
 mongoose.connect(DB)
 .then(() => console.log('DB connection successful!'));
