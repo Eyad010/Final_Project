@@ -16,59 +16,59 @@ const duri = new DataURIParser();
 
 // a file is uploaded, Multer will store the file data in memory rather than storing it on disk
 // Multer storage configuration
-const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'public/img/users'); // Specify the destination folder
-  },
-  filename: (req, file, cb) => {
-    const ext = file.mimetype.split('/')[1];
-    // Constructing the filename with user id and current timestamp
-    const filename = `user-${req.user.id}-${Date.now()}.${ext}`;
-    cb(null, filename);
-  }
-});
+// const multerStorage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, 'public/img/users'); // Specify the destination folder
+//   },
+//   filename: (req, file, cb) => {
+//     const ext = file.mimetype.split('/')[1];
+//     // Constructing the filename with user id and current timestamp
+//     const filename = `user-${req.user.id}-${Date.now()}.${ext}`;
+//     cb(null, filename);
+//   }
+// });
 
-// Filter to test if the uploaded file is an image
-const multerFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image')) {
-    cb(null, true);
-  } else {
-    cb(new AppError('Not an image! Please upload images only.', 400));
-  }
-};
+// // Filter to test if the uploaded file is an image
+// const multerFilter = (req, file, cb) => {
+//   if (file.mimetype.startsWith('image')) {
+//     cb(null, true);
+//   } else {
+//     cb(new AppError('Not an image! Please upload images only.', 400));
+//   }
+// };
 
-// Middleware for uploading user photo
-const upload = multer({
-  storage: multerStorage,
-  fileFilter: multerFilter
-}).single('photo'); // 'photo' is the field name in the form
+// // Middleware for uploading user photo
+// const upload = multer({
+//   storage: multerStorage,
+//   fileFilter: multerFilter
+// }).single('photo'); // 'photo' is the field name in the form
 
-// Middleware for resizing user photo
-exports.uploadUserPhoto = catchAsync((req, res, next) => {
-  upload(req, res, async (err) => {
-    if (err instanceof multer.MulterError) {
-      return next(new AppError('Multer error: ' + err.message, 400));
-    } else if (err) {
-      return next(err);
-    }
+// // Middleware for resizing user photo
+// exports.uploadUserPhoto = catchAsync((req, res, next) => {
+//   upload(req, res, async (err) => {
+//     if (err instanceof multer.MulterError) {
+//       return next(new AppError('Multer error: ' + err.message, 400));
+//     } else if (err) {
+//       return next(err);
+//     }
 
-    // Check if no file was uploaded
-    if (!req.file) return next();
+//     // Check if no file was uploaded
+//     if (!req.file) return next();
 
     
-      // Resize the image using sharp
-      await sharp(req.file.path)
-        .resize(500, 500)
-        .toFormat('jpeg')
-        .jpeg({ quality: 90 })
-        .toFile(path.join('public/img/users', req.file.filename));
+//       // Resize the image using sharp
+//       await sharp(req.file.path)
+//         .resize(500, 500)
+//         .toFormat('jpeg')
+//         .jpeg({ quality: 90 })
+//         .toFile(path.join('public/img/users', req.file.filename));
 
-      // Delete the original file from the temporary directory
-      // await promisify(fs.unlink)(req.file.path);
+//       // Delete the original file from the temporary directory
+//       // await promisify(fs.unlink)(req.file.path);
 
-      next();
-  });
-});
+//       next();
+//   });
+// });
 
 
 
@@ -112,7 +112,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     new: true,
     runValidators: true,
   });
-  console.log("Updated User:", updatedUser);
+  // console.log("Updated User:", updatedUser);
 
   res.status(200).json({
     status: "success",
@@ -209,4 +209,42 @@ exports.getAllUsers = catchAsync(async (req, res) => {
       users,
     },
   });
+});
+
+
+
+exports.uploadUserPhoto = catchAsync(async(req, res, next) => {
+  // 1) validation
+  if(!req.file){
+    return  res.status(400).json({ message: 'no file provided'});
+  }
+
+
+// 2) get the path to the image
+ const imagePath = path.join(__dirname, `../public/img/users/${req.file.filename}`);
+// 3) upload to cloudinary
+const result = await cloudinaryUploadImage(imagePath);
+console.log(result);
+// 4)get the user from DB
+const user = await User.findById(req.user.id);
+// 5) delete the old profile photo if exist
+if (user.photo && user.photo !== ''){
+  await cloudinaryRemoveImage(user.photo);
+ }
+ // 6) change the profilePhoto field in the DB
+ user.photo = result.secure_url;
+ user.markModified('photo'); // Mark the photo field as modified
+ user.passwordConfirm = user.password; // Set passwordConfirm to match the password
+ await user.save({ validateBeforeSave: false });
+ 
+//7) send response to client
+res.status(200).json({
+  success: true,
+  message: "your photo updated successfully",
+  data: {
+    user
+  }
+});
+  // remove image from the server
+   fs.unlinkSync(imagePath);
 });

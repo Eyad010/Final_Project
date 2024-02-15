@@ -1,6 +1,7 @@
 const express = require("express");
 const userController = require("../controllers/userController");
 const authController = require("../controllers/authController");
+const PhotoUploadController = require("../controllers/photoUploadController");
 
 const router = express.Router();
 
@@ -26,16 +27,16 @@ router.delete("/deleteMe", userController.deleteMe);
 router.get("/me", userController.getMe, userController.getOne);
 router.patch(
   "/updateMe",
-    userController.uploadUserPhoto,
+    // userController.uploadUserPhoto,
     // userController.resizeUserPhoto,
   userController.updateMe
 );
 
-// router.patch(
-//   "/updateMyPhoto",
-//   userController.uploadUserPhoto,
-//   userController.UserProfilePhoto
-// );
+router.patch(
+  "/updateMyPhoto",
+  PhotoUploadController.single('photo'),
+  userController.uploadUserPhoto
+);
 
 module.exports = router;
 
