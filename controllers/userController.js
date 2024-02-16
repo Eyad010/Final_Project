@@ -16,7 +16,6 @@ const {    cloudinaryUploadImage,
 
 // a file is uploaded, Multer will store the file data in memory rather than storing it on disk
 // Multer storage configuration
-<<<<<<< Updated upstream
 // const multerStorage = multer.diskStorage({
 //   destination: (req, file, cb) => {
 //     cb(null, 'public/img/users'); // Specify the destination folder
@@ -53,48 +52,6 @@ const {    cloudinaryUploadImage,
 //       return next(err);
 //     }
 
-=======
-exports.profilePhoto = catchAsync(async(req, res, next) => {
-  res.status(200).json({ message: "your photo uploaded"})
-}); 
-
-// const multerStorage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, 'public/img/users'); // Specify the destination folder
-//   },
-//   filename: (req, file, cb) => {
-//     const ext = file.mimetype.split('/')[1];
-//     // Constructing the filename with user id and current timestamp
-//     const filename = `user-${req.user.id}-${Date.now()}.${ext}`;
-//     cb(null, filename);
-//   }
-// });
-
-// // Filter to test if the uploaded file is an image
-// const multerFilter = (req, file, cb) => {
-//   if (file.mimetype.startsWith('image')) {
-//     cb(null, true);
-//   } else {
-//     cb(new AppError('Not an image! Please upload images only.', 400));
-//   }
-// };
-
-// // Middleware for uploading user photo
-// const upload = multer({
-//   storage: multerStorage,
-//   fileFilter: multerFilter
-// }).single('photo'); // 'photo' is the field name in the form
-
-// // Middleware for resizing user photo
-// exports.uploadUserPhoto = catchAsync((req, res, next) => {
-//   upload(req, res, async (err) => {
-//     if (err instanceof multer.MulterError) {
-//       return next(new AppError('Multer error: ' + err.message, 400));
-//     } else if (err) {
-//       return next(err);
-//     }
-
->>>>>>> Stashed changes
 //     // Check if no file was uploaded
 //     if (!req.file) return next();
 
