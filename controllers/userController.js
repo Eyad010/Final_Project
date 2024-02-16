@@ -2,16 +2,16 @@ const User = require("../models/userModel");
 const Post = require("../models/postModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
-const multer = require("multer");
-const sharp = require("sharp");
-const sendEmail = require("../utils/email");
+// const multer = require("multer");
+// const sharp = require("sharp");
+
 const path = require('path');
 const fs = require('fs');
 const {    cloudinaryUploadImage,
   cloudinaryRemoveImage } = require('../utils/cloudinary');
 
-const DataURIParser = require('datauri/parser');
-const duri = new DataURIParser();
+// const DataURIParser = require('datauri/parser');
+// const duri = new DataURIParser();
 
 
 // a file is uploaded, Multer will store the file data in memory rather than storing it on disk
@@ -213,13 +213,13 @@ exports.getAllUsers = catchAsync(async (req, res) => {
 
 
 
-exports.uploadUserPhoto = catchAsync(async(req, res, next) => {
+exports.profilePhotoUpload = catchAsync(async(req, res, next) => {
   // 1) validation
   if(!req.file){
     return  res.status(400).json({ message: 'no file provided'});
   }
 
-
+console.log(req.file);
 // 2) get the path to the image
  const imagePath = path.join(__dirname, `../public/img/users/${req.file.filename}`);
 // 3) upload to cloudinary
@@ -228,11 +228,14 @@ console.log(result);
 // 4)get the user from DB
 const user = await User.findById(req.user.id);
 // 5) delete the old profile photo if exist
-if (user.photo && user.photo !== ''){
-  await cloudinaryRemoveImage(user.photo);
+if (user.photo.publicId !== null){
+  await cloudinaryRemoveImage(user.photo.publicId);
  }
  // 6) change the profilePhoto field in the DB
- user.photo = result.secure_url;
+ user.photo = {
+  url: result.secure_url,
+  publicId: result.public_id
+ };
  user.markModified('photo'); // Mark the photo field as modified
  user.passwordConfirm = user.password; // Set passwordConfirm to match the password
  await user.save({ validateBeforeSave: false });

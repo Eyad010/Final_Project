@@ -25,17 +25,16 @@ router.patch(
 router.delete("/deleteMe", userController.deleteMe);
 
 router.get("/me", userController.getMe, userController.getOne);
+
 router.patch(
   "/updateMe",
-    // userController.uploadUserPhoto,
-    // userController.resizeUserPhoto,
   userController.updateMe
 );
 
 router.patch(
   "/updateMyPhoto",
   PhotoUploadController.single('photo'),
-  userController.uploadUserPhoto
+  userController.profilePhotoUpload
 );
 
 module.exports = router;
