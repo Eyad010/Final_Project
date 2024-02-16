@@ -36,7 +36,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
   if(req.file) {
     return next(
-      new AppError('You cannot update your profile photo from this route. Please use /updateMyProfilePhoto.', 400)
+      new AppError("You cannot update your profile photo from this route. Please use /updateMyProfilePhoto.", 400)
     );
   }
 
