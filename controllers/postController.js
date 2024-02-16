@@ -1,15 +1,10 @@
 const Post = require("../models/postModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
-const sharp = require('sharp');
-const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 const {    cloudinaryUploadImage,
   cloudinaryRemoveImage } = require('../utils/cloudinary');
-
-const DataURIParser = require('datauri/parser');
-const duri = new DataURIParser();
+  const uploadImages = require('../controllers/imagesUploadController');
 
 
 exports.getLatestPosts = catchAsync(async (req, res, next) => {
@@ -102,61 +97,37 @@ exports.getPost = catchAsync(async (req, res, next) => {
   });
 });
 
-// Multer storage configuration
-const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'public/img/post');
-  },
-  filename: (req, file, cb) => {
-    const ext = file.mimetype.split('/')[1];
-    const postId = req.params.id;
-    const timestamp = Date.now();
-    const index = req.files.images.indexOf(file) + 1; // Get the index of the current file
-    const filename = `post-${postId}-${timestamp}-${index}.${ext}`;
-    cb(null, filename);
-  }
-});
 
-
-// Multer filter to test if the uploaded file is an image
-const multerFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image')) {
-    cb(null, true);
-  } else {
-    cb(new AppError('Not an image! Please upload images only.', 400));
-  }
-};
-
-// Multer middleware for uploading photos
-const upload = multer({
-  storage: multerStorage,
-  fileFilter: multerFilter
-});
-
-exports.uploadPostImages = upload.fields([
+exports.uploadPostImages = uploadImages.fields([
   { name: 'images', maxCount: 3 }
 ]);
 
 exports.resizePostImages = catchAsync(async (req, res, next) => {
   if (!req.files.images) return next(new AppError('No files found with given name', 400));
-
+  console.log(req.params); // Log req.params to see if 'id' is available
+  console.log(req.files);
   // 1) Images
   req.body.images = [];
-
+  
   await Promise.all(
     req.files.images.map(async (file, i) => {
-      const ext = file.mimetype.split('/')[1];
-      const filename = `post-${req.params.id}-${Date.now()}-${i + 1}.${ext}`;
+      
+      const result = await cloudinaryUploadImage(file.path);
+      
+      console.log(result);
 
-      await sharp(file.path)
-        .resize(2000, 1333)
-        .toFormat('jpeg')
-        .jpeg({ quality: 90 })
-        .toFile(`public/img/post/${filename}`);
+      // Store URL and public ID in an object
+      const imageData = {
+        url: result.secure_url,
+        publicId: result.public_id
+      };
 
-      req.body.images.push(filename);
+      req.body.images.push(imageData);
+        // remove  file from server once it has been saved in Cloudnary
+        fs.unlinkSync(file.path)
     })
   );
+
 
   next();
 });
@@ -216,6 +187,11 @@ exports.deletePost = catchAsync(async (req, res, next) => {
     if (req.user.id !== post.user.id) {
       return next(new AppError('You do not have permission to delete this post', 403));
     }
+
+     // Remove images from Cloudinary
+     for (const image of post.images) {
+      await cloudinaryRemoveImage(image.publicId);
+  }
     // Delete the post
     await Post.findByIdAndDelete(req.params.id);
 
