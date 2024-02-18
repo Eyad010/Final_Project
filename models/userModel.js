@@ -3,71 +3,71 @@ const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Please tell us your name!"],
-  },
-  email: {
-    type: String,
-    unique: true,
-    lowercase: true,
-    required: [true, "Please provide an email"],
-    validate: [validator.isEmail, "Please provide a valid email"],
-  },
-  photo: {
-    url: {
+const userSchema = new mongoose.Schema(
+  {
+    name: {
       type: String,
-      default: 'default.jpg' // Default URL if no photo is provided
+      required: [true, "Please tell us your name!"],
     },
-    publicId: {
+    email: {
       type: String,
-      default: null // Default public ID if no photo is provided
-    }
-  },
-  password: {
-    type: String,
-    required: [true, "Please provide a password"],
-    minlength: 6,
-    select: false,
-  },
-  passwordConfirm: {
-    type: String,
-    required: [true, "Please confirm your password"],
-    // This only works on CREATE and SAVE!!!
-    validate: {
-      validator: function (el) {
-        return el === this.password;
+      unique: true,
+      lowercase: true,
+      required: [true, "Please provide an email"],
+      validate: [validator.isEmail, "Please provide a valid email"],
+    },
+    photo: {
+      url: {
+        type: String,
+        default: "default.jpg", // Default URL if no photo is provided
       },
-      message: "Passwords are not the same!",
+      publicId: {
+        type: String,
+        default: null, // Default public ID if no photo is provided
+      },
+    },
+    password: {
+      type: String,
+      required: [true, "Please provide a password"],
+      minlength: 6,
+      select: false,
+    },
+    passwordConfirm: {
+      type: String,
+      required: [true, "Please confirm your password"],
+      // This only works on CREATE and SAVE!!!
+      validate: {
+        validator: function (el) {
+          return el === this.password;
+        },
+        message: "Passwords are not the same!",
+      },
+    },
+    phone: {
+      type: String,
+      required: [true, "Please provide your phone number"],
+    },
+
+    passwordResetToken: String,
+    passwordResetExpires: Date,
+    active: {
+      type: Boolean,
+      default: true,
+      select: false,
     },
   },
-  phone: {
-    type: String,
-    required: [true, "Please provide your phone number"],
-  },
-
-  passwordResetToken: String,
-  passwordResetExpires: Date,
-  active: {
-    type: Boolean,
-    default: true,
-    select: false,
-  },
-},
   {
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
 // virtual populate
-userSchema.virtual('posts', {
-  ref: 'Post',
-  foreignField: 'user',
-  localField: '_id'
+userSchema.virtual("posts", {
+  ref: "Post",
+  foreignField: "user",
+  localField: "_id",
 });
-
 
 // use document middleware to encrypt the password
 userSchema.pre("save", async function (next) {

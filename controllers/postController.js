@@ -1,26 +1,26 @@
 const Post = require("../models/postModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
-const fs = require('fs');
-const {    cloudinaryUploadImage,
-  cloudinaryRemoveImage } = require('../utils/cloudinary');
-  const uploadImages = require('../controllers/imagesUploadController');
-
+const fs = require("fs");
+const {
+  cloudinaryUploadImage,
+  cloudinaryRemoveImage,
+} = require("../utils/cloudinary");
+const uploadImages = require("../controllers/imagesUploadController");
 
 exports.getLatestPosts = catchAsync(async (req, res, next) => {
   const limit = 10; // Number of posts to retrieve
   const sortQuery = { createdAt: -1 }; // Sort by createdAt field in descending order
 
-    const posts = await Post.find().limit(limit).sort(sortQuery);
+  const posts = await Post.find().limit(limit).sort(sortQuery);
 
-    res.status(200).json({
-      status: "success",
-      results: posts.length,
-      data: {
-        posts
-      }
-    });
-
+  res.status(200).json({
+    status: "success",
+    results: posts.length,
+    data: {
+      posts,
+    },
+  });
 });
 
 exports.getAllPosts = catchAsync(async (req, res, next) => {
@@ -30,7 +30,7 @@ exports.getAllPosts = catchAsync(async (req, res, next) => {
     status: "success",
     results: posts.length,
     data: {
-      posts
+      posts,
     },
   });
 });
@@ -79,8 +79,6 @@ exports.getPostsByCategory = catchAsync(async (req, res, next) => {
   });
 });
 
-
-
 // Get single post by ID
 exports.getPost = catchAsync(async (req, res, next) => {
   const post = await Post.findById(req.params.id);
@@ -92,46 +90,42 @@ exports.getPost = catchAsync(async (req, res, next) => {
     status: "success",
     data: {
       post,
- 
     },
   });
 });
 
-
 exports.uploadPostImages = uploadImages.fields([
-  { name: 'images', maxCount: 3 }
+  { name: "images", maxCount: 3 },
 ]);
 
 exports.resizePostImages = catchAsync(async (req, res, next) => {
-  if (!req.files.images) return next(new AppError('No files found with given name', 400));
+  if (!req.files.images)
+    return next(new AppError("No files found with given name", 400));
   console.log(req.params); // Log req.params to see if 'id' is available
   console.log(req.files);
   // 1) Images
   req.body.images = [];
-  
+
   await Promise.all(
     req.files.images.map(async (file, i) => {
-      
       const result = await cloudinaryUploadImage(file.path);
-      
-      console.log(result);
+
+      // console.log(result);
 
       // Store URL and public ID in an object
       const imageData = {
         url: result.secure_url,
-        publicId: result.public_id
+        publicId: result.public_id,
       };
 
       req.body.images.push(imageData);
-        // remove  file from server once it has been saved in Cloudnary
-        fs.unlinkSync(file.path)
+      // remove  file from server once it has been saved in Cloudnary
+      fs.unlinkSync(file.path);
     })
   );
 
-
   next();
 });
-
 
 exports.createPost = catchAsync(async (req, res, next) => {
   // Create a new post without populating the user field
@@ -150,57 +144,54 @@ exports.createPost = catchAsync(async (req, res, next) => {
   });
 });
 
-
 exports.updatePost = catchAsync(async (req, res, next) => {
- 
-    // Check if the post exists
-    const post = await Post.findById(req.params.id);
-    if (!post) {
-      return next(new AppError("No post found with that ID", 404));
-    }
-    // Check if the authenticated user owns the post
-    if (req.user.id !== post.user.id) {
-      return next(new AppError('You do not have permission to edit this post', 403));
-    }
-    // Update the post
-    const updatedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    
-    res.status(200).json({
-      status: "success",
-      data: {
-        post: updatedPost,
-      },
-    });
+  // Check if the post exists
+  const post = await Post.findById(req.params.id);
+  if (!post) {
+    return next(new AppError("No post found with that ID", 404));
+  }
+  // Check if the authenticated user owns the post
+  if (req.user.id !== post.user.id) {
+    return next(
+      new AppError("You do not have permission to edit this post", 403)
+    );
+  }
+  // Update the post
+  const updatedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
 
+  res.status(200).json({
+    status: "success",
+    data: {
+      post: updatedPost,
+    },
+  });
 });
 
 exports.deletePost = catchAsync(async (req, res, next) => {
-    // Check if the post exists
-    const post = await Post.findById(req.params.id);
-    if (!post) {
-      return next(new AppError("No post found with that ID", 404));
-    }
-    // Check if the authenticated user owns the post
-    if (req.user.id !== post.user.id) {
-      return next(new AppError('You do not have permission to delete this post', 403));
-    }
-
-     // Remove images from Cloudinary
-     for (const image of post.images) {
-      await cloudinaryRemoveImage(image.publicId);
+  // Check if the post exists
+  const post = await Post.findById(req.params.id);
+  if (!post) {
+    return next(new AppError("No post found with that ID", 404));
   }
-    // Delete the post
-    await Post.findByIdAndDelete(req.params.id);
+  // Check if the authenticated user owns the post
+  if (req.user.id !== post.user.id) {
+    return next(
+      new AppError("You do not have permission to delete this post", 403)
+    );
+  }
 
-    res.status(204).json({
-      status: "success",
-      post: null,
-    });
+  // Remove images from Cloudinary
+  for (const image of post.images) {
+    await cloudinaryRemoveImage(image.publicId);
+  }
+  // Delete the post
+  await Post.findByIdAndDelete(req.params.id);
+
+  res.status(204).json({
+    status: "success",
+    post: null,
+  });
 });
-
-
-
-

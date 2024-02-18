@@ -9,13 +9,13 @@ const postSchema = new mongoose.Schema({
     {
       url: {
         type: String,
-        required: true
+        required: true,
       },
       publicId: {
         type: String,
-        required: true
-      }
-    }
+        required: true,
+      },
+    },
   ],
   createdAt: {
     type: Date,
@@ -24,25 +24,38 @@ const postSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
   location: {
     type: String,
     required: [true, "location must be provided"],
   },
   category: {
-      type: String,
-      enum: ['أخري', 'أدوات مدرسيه', 'ألعاب', 'كتب', 'ديكور وأثاث', 'أحذية', 'أجهزة إلكترونية', 'هواتف محمولة', 'ملابس'],
-      required: true
-  }
-
+    type: String,
+    enum: [
+      "أخري",
+      "أدوات مدرسيه",
+      "ألعاب",
+      "كتب",
+      "ديكور وأثاث",
+      "أحذية",
+      "أجهزة إلكترونية",
+      "هواتف محمولة",
+      "ملابس",
+    ],
+    required: true,
+  },
+  price: {
+    type: Number,
+    default: 0,
+  },
 });
 
 postSchema.pre(/^find/, function (next) {
   this.populate({
     path: "user",
     select: "name photo phone",
-  })
+  });
   next();
 });
 
