@@ -101,8 +101,8 @@ exports.uploadPostImages = uploadImages.fields([
 exports.resizePostImages = catchAsync(async (req, res, next) => {
   if (!req.files.images)
     return next(new AppError("No files found with given name", 400));
-  console.log(req.params); // Log req.params to see if 'id' is available
-  console.log(req.files);
+  // console.log(req.params); // Log req.params to see if 'id' is available
+  // console.log(req.files);
   // 1) Images
   req.body.images = [];
 
@@ -193,5 +193,22 @@ exports.deletePost = catchAsync(async (req, res, next) => {
   res.status(204).json({
     status: "success",
     post: null,
+  });
+});
+
+exports.searchPostsByContent = catchAsync(async (req, res, next) => {
+  const query = req.params.query; // Retrieve the search query from route parameters
+
+  // Perform search using a regex pattern to match the query in the content field
+  const posts = await Post.find({
+    content: { $regex: query, $options: "i" },
+  });
+
+  res.status(200).json({
+    status: "success",
+    results: posts.length,
+    data: {
+      posts,
+    },
   });
 });
