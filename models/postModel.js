@@ -7,14 +7,8 @@ const postSchema = new mongoose.Schema({
   },
   images: [
     {
-      url: {
-        type: String,
-        required: true,
-      },
-      publicId: {
-        type: String,
-        required: true,
-      },
+      publicId: String,
+      url: String,
     },
   ],
   createdAt: {

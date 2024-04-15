@@ -94,39 +94,6 @@ exports.getPost = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.uploadPostImages = uploadImages.fields([
-  { name: "images", maxCount: 3 },
-]);
-
-exports.resizePostImages = catchAsync(async (req, res, next) => {
-  if (!req.files.images)
-    return next(new AppError("No files found with given name", 400));
-  // console.log(req.params); // Log req.params to see if 'id' is available
-  // console.log(req.files);
-  // 1) Images
-  req.body.images = [];
-
-  await Promise.all(
-    req.files.images.map(async (file, i) => {
-      const result = await cloudinaryUploadImage(file.path);
-
-      // console.log(result);
-
-      // Store URL and public ID in an object
-      const imageData = {
-        url: result.secure_url,
-        publicId: result.public_id,
-      };
-
-      req.body.images.push(imageData);
-      // remove  file from server once it has been saved in Cloudnary
-      fs.unlinkSync(file.path);
-    })
-  );
-
-  next();
-});
-
 exports.createPost = catchAsync(async (req, res, next) => {
   // Create a new post without populating the user field
   req.body.user = req.user.id;
@@ -211,4 +178,41 @@ exports.searchPostsByContent = catchAsync(async (req, res, next) => {
       posts,
     },
   });
+});
+
+exports.uploadPostImages = uploadImages.fields([
+  { name: "images", maxCount: 3 },
+]);
+
+exports.resizePostImages = catchAsync(async (req, res, next) => {
+  // 1. Check if images were uploaded
+  if (!req.files.images) {
+    // If no images are provided, simply skip the image update process
+    return next();
+  }
+  // Initialize array to store image data
+  req.body.images = [];
+
+  // Upload each image to Cloudinary and process asynchronously
+  await Promise.all(
+    req.files.images.map(async (file, i) => {
+      // Upload image to Cloudinary
+      const result = await cloudinaryUploadImage(file.path);
+
+      // Construct image data object with URL and public ID
+      const imageData = {
+        url: result.secure_url,
+        publicId: result.public_id,
+      };
+
+      // Store image data in array
+      req.body.images.push(imageData);
+
+      // Remove uploaded file from server
+      fs.unlinkSync(file.path);
+    })
+  );
+
+  // Move to next middleware
+  next();
 });
