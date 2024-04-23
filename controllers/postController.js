@@ -1,6 +1,7 @@
 const Post = require("../models/postModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const mongoose = require("mongoose");
 const fs = require("fs");
 const {
   cloudinaryUploadImage,
@@ -24,14 +25,28 @@ exports.getLatestPosts = catchAsync(async (req, res, next) => {
 });
 
 exports.getAllPosts = catchAsync(async (req, res, next) => {
-  const posts = await Post.find();
+  const limit = parseInt(req.query.limit) || 5; // Parse limit to ensure it's a number
+  const page = parseInt(req.query.page) || 1; // Parse page to ensure it's a number
+  const skip = (page - 1) * limit || 0;
+  let query = {};
+
+  // Check if a category is specified in the query
+  if (req.query.category) {
+    query.category = req.query.category; // Filter by category
+  }
+
+  // Check if search query is provided
+  if (req.query.search) {
+    query.content = { $regex: req.query.search, $options: "i" }; // Search by content
+  }
+
+  const posts = await Post.find(query).limit(limit).skip(skip);
 
   res.status(200).json({
     status: "success",
     results: posts.length,
-    data: {
-      posts,
-    },
+    page,
+    posts,
   });
 });
 
@@ -47,40 +62,11 @@ exports.getAllCategories = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getPostsByCategory = catchAsync(async (req, res, next) => {
-  const category = req.params.category;
-
-  // Check if the category is valid (exists in the enum)
-  const validCategories = Post.schema.path("category").enumValues;
-
-  if (!validCategories.includes(category)) {
-    return next(new AppError("Invalid category", 400));
-  }
-
-  // Query the database for posts with the specified category
-  const posts = await Post.find({ category });
-
-  // If no posts are found, you might want to handle this accordingly
-  if (!posts || posts.length === 0) {
-    return res.status(404).json({
-      status: "fail",
-      message: "No posts found for the specified category",
-      data: null,
-    });
-  }
-
-  // If posts are found, send them in the response
-  res.status(200).json({
-    status: "success",
-    results: posts.length,
-    data: {
-      posts,
-    },
-  });
-});
-
 // Get single post by ID
 exports.getPost = catchAsync(async (req, res, next) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return next(new AppError(`invalid id`, 400));
+  }
   const post = await Post.findById(req.params.id);
   if (!post) {
     return next(new AppError("No post found with that ID", 404));
@@ -163,23 +149,6 @@ exports.deletePost = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.searchPostsByContent = catchAsync(async (req, res, next) => {
-  const query = req.params.query; // Retrieve the search query from route parameters
-
-  // Perform search using a regex pattern to match the query in the content field
-  const posts = await Post.find({
-    content: { $regex: query, $options: "i" },
-  });
-
-  res.status(200).json({
-    status: "success",
-    results: posts.length,
-    data: {
-      posts,
-    },
-  });
-});
-
 exports.uploadPostImages = uploadImages.fields([
   { name: "images", maxCount: 3 },
 ]);
@@ -190,10 +159,22 @@ exports.resizePostImages = catchAsync(async (req, res, next) => {
     // If no images are provided, simply skip the image update process
     return next();
   }
+
+  // Retrieve old images' public IDs from the database
+  const post = await Post.findById(req.params.id);
+  const oldImagesPublicIds = post.images.map((image) => image.publicId);
+
+  // Delete old images from Cloudinary
+  await Promise.all(
+    oldImagesPublicIds.map(async (publicId) => {
+      await cloudinaryRemoveImage(publicId);
+    })
+  );
+
   // Initialize array to store image data
   req.body.images = [];
 
-  // Upload each image to Cloudinary and process asynchronously
+  // Upload each new image to Cloudinary and process asynchronously
   await Promise.all(
     req.files.images.map(async (file, i) => {
       // Upload image to Cloudinary

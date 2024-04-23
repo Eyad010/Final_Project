@@ -29,11 +29,4 @@ router
   )
   .delete(authController.protect, postController.deletePost);
 
-router.get(
-  "/category/:category",
-  authController.protect,
-  postController.getPostsByCategory
-);
-router.get("/search/:query", postController.searchPostsByContent);
-
 module.exports = router;

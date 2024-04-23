@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please provide your phone number"],
     },
-
+    passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
     active: {

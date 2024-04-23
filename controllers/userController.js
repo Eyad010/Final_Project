@@ -66,7 +66,7 @@ exports.getMe = (req, res, next) => {
   next();
 };
 
-exports.getOne = catchAsync(async (req, res, next) => {
+exports.getMyProfile = catchAsync(async (req, res, next) => {
   const doc = await User.findById(req.params.id).populate({
     path: "posts",
     select: "-user",
