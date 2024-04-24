@@ -9,8 +9,11 @@ router.post("/singup", authController.singup);
 router.post("/login", authController.login);
 // router.get("/logout", userController.logout);
 
+// router.post("/forgotPassword", authController.forgotPassword);
+// router.patch("/resetPassword/:token", authController.resetPassword);
 router.post("/forgotPassword", authController.forgotPassword);
-router.patch("/resetPassword/:token", authController.resetPassword);
+router.post("/verifyResetCode", authController.verifyResetCode);
+router.patch("/resetPassword/", authController.resetPassword);
 
 router.route("/getAllUsers").get(userController.getAllUsers);
 
