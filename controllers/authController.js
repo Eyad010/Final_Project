@@ -132,33 +132,6 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, res);
 });
 
-// exports.forgotPassword = catchAsync(async (req, res, next) => {
-//   // 1) Get user based on POSTed email
-//   const user = await User.findOne({ email: req.body.email });
-//   if (!user) {
-//     return next(new AppError("There is no user with email address.", 404));
-//   }
-//   // 2) Generate the random reset token
-//   const resetToken = user.createPasswordResetToken();
-//   await user.save({ validateBeforeSave: false });
-//   try {
-//     res.status(200).json({
-//       status: "success",
-//       token: resetToken,
-//     });
-//   } catch (err) {
-//     console.error(err); // Log the actual error for debugging purposes
-
-//     user.passwordResetToken = undefined;
-//     user.passwordResetExpires = undefined;
-//     await user.save({ validateBeforeSave: false });
-//     return next(
-//       new AppError("There was an error sending the email. Try again later!"),
-//       500
-//     );
-//   }
-// });
-
 exports.forgotPassword = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
 
@@ -193,30 +166,6 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   res.json({ message: "you send an emil" });
 });
-
-// exports.resetPassword = catchAsync(async (req, res, next) => {
-//   // 1) Get user based on the token
-//   const hashedToken = crypto
-//     .createHash("sha256")
-//     .update(req.params.token)
-//     .digest("hex");
-
-//   const user = await User.findOne({
-//     passwordResetToken: hashedToken,
-//     passwordResetExpires: { $gt: Date.now() },
-//   });
-//   // 2) If token has not expired, and there is user, set the new password
-//   if (!user) {
-//     return next(new AppError("Token is invalid or has expired", 400));
-//   }
-//   user.password = req.body.password;
-//   user.passwordConfirm = req.body.passwordConfirm;
-//   user.passwordResetToken = undefined;
-//   user.passwordResetExpires = undefined;
-//   await user.save();
-
-//   createSendToken(user, 200, res);
-// });
 
 exports.verifyResetCode = catchAsync(async (req, res, next) => {
   const hashResetCode = crypto
