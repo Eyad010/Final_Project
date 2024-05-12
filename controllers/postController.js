@@ -150,7 +150,7 @@ exports.deletePost = catchAsync(async (req, res, next) => {
 });
 
 exports.uploadPostImages = uploadImages.fields([
-  { name: "images", maxCount: 3 },
+  { name: "images", maxCount: 1 },
 ]);
 
 exports.resizePostImages = catchAsync(async (req, res, next) => {
@@ -159,37 +159,25 @@ exports.resizePostImages = catchAsync(async (req, res, next) => {
     // If no images are provided, simply skip the image update process
     return next();
   }
-
-  // Retrieve old images' public IDs from the database
-  const post = await Post.findById(req.params.id);
-  const oldImagesPublicIds = post.images.map((image) => image.publicId);
-
-  // Delete old images from Cloudinary
-  await Promise.all(
-    oldImagesPublicIds.map(async (publicId) => {
-      await cloudinaryRemoveImage(publicId);
-    })
-  );
-
-  // Initialize array to store image data
+  //2) Initialize array to store image data
   req.body.images = [];
 
-  // Upload each new image to Cloudinary and process asynchronously
+  //3) Upload each image to Cloudinary and process asynchronously
   await Promise.all(
     req.files.images.map(async (file, i) => {
       // Upload image to Cloudinary
       const result = await cloudinaryUploadImage(file.path);
 
-      // Construct image data object with URL and public ID
+      //4) Construct image data object with URL and public ID
       const imageData = {
         url: result.secure_url,
         publicId: result.public_id,
       };
 
-      // Store image data in array
+      //5) Store image data in array
       req.body.images.push(imageData);
 
-      // Remove uploaded file from server
+      //6) Remove uploaded file from server
       fs.unlinkSync(file.path);
     })
   );

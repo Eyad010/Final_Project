@@ -21,12 +21,7 @@ router.route("/getAllCategories").get(postController.getAllCategories);
 router
   .route("/:id")
   .get(authController.protect, postController.getPost)
-  .patch(
-    authController.protect,
-    postController.uploadPostImages,
-    postController.resizePostImages,
-    postController.updatePost
-  )
+  .patch(authController.protect, postController.updatePost)
   .delete(authController.protect, postController.deletePost);
 
 module.exports = router;
