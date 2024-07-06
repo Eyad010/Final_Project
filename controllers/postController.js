@@ -87,8 +87,6 @@ exports.createPost = catchAsync(async (req, res, next) => {
 
   // Populate the user field in the newly created post
   const populatedPost = await Post.findById(newPost._id).populate("user");
-  // console.log("New Post ID:", newPost._id);
-  // console.log("Populated User:", populatedPost.user);
   res.status(201).json({
     status: "success",
     data: {
